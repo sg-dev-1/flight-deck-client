@@ -8,8 +8,6 @@ This is the React + TypeScript frontend for the FlightDeck real-time flight boar
 * TypeScript
 * Vite (Build Tool / Dev Server)
 * Material UI (MUI v5) (`@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`)
-* MUI X Date Pickers (`@mui/x-date-pickers`)
-* `date-fns` & `@date-io/date-fns` (for MUI X date adapter)
 * `styled-components`
 * Axios (for HTTP requests)
 * `@microsoft/signalr` (SignalR client)
