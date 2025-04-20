@@ -85,5 +85,3 @@ This is the React + TypeScript frontend for the FlightDeck real-time flight boar
 * `zod`
 * `@hookform/resolvers`
 
-*(You might have other dependencies like `@types/*`, `eslint`, etc. - list the main functional ones)*
-
