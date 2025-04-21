@@ -35,14 +35,6 @@ This project is a full-stack, real-time flight board management system developed
 * `@microsoft/signalr` (for real-time communication)
 * `react-country-flag` (for displaying destination flags)
 
-**Backend:**
-
-* ASP.NET Core Web API (.NET 6/7/8 - *Specify Version*)
-* C#
-* SignalR (for real-time communication)
-* *(Mention Storage: In-Memory List / EF Core + SQLite / etc.)*
-* *(Mention Testing Frameworks if used: xUnit / NUnit)*
-
 ## Screenshots & Demonstrations
 
 * **Adding and Filtering Flights:**
