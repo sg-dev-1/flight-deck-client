@@ -1,14 +1,5 @@
-// Suggested location: src/utils/statusCalculator.ts
+import { FlightStatus } from "../types/flight"; // Import the consolidated type
 
-export type FlightStatus = "Scheduled" | "Boarding" | "Departed" | "Landed" | "Delayed" | "Unknown";
-
-/**
- * Calculates the flight status based on departure time according to the exact logic
- * sequence provided in the PDF specification.
- * Performs the comparison against the current time in UTC.
- * @param departureTimeString - The departure time as an ISO 8601 string (assumed to be UTC).
- * @returns The calculated flight status string.
- */
 export const calculateFlightStatus = (departureTimeString: string): FlightStatus => {
     try {
         const departureTime = new Date(departureTimeString);
@@ -21,25 +12,36 @@ export const calculateFlightStatus = (departureTimeString: string): FlightStatus
         const departureUtcMillis = departureTime.getTime();
         const diffMinutes = (departureUtcMillis - nowUtcMillis) / 60000;
 
-        // --- Exact Logic from PDF ---
-        if (diffMinutes > 30) return "Scheduled";
-        if (diffMinutes > 10) return "Boarding"; // Handles (10, 30]
-        if (diffMinutes >= -60) return "Departed"; // Handles [-60, 10] 
+        // Initialize status based on C# logic
+        let status: FlightStatus = "Scheduled"; // Default
 
-        // NOTE: The following two conditions from the PDF overlap. 
-        // Because the `Departed` check (>= -60) comes first, any value 
-        // between -60 and -15 will return "Departed", not "Delayed".
-        // Because the `Landed` check (< -60) comes next, any value less 
-        // than -60 will return "Landed", not "Delayed".
-        // Therefore, with this exact sequence, "Delayed" will likely never be returned.
-        if (diffMinutes < -60) return "Landed"; // Handles (-inf, -60)
-        if (diffMinutes < -15) return "Delayed"; // Problematic: Will likely never be reached
+        // Apply C# if/else if chain
+        if (diffMinutes > 30) {
+            status = "Scheduled";
+        } else if (diffMinutes > 10) {
+            status = "Boarding";
+        } else if (diffMinutes >= -60) {
+            status = "Departed";
+        }
 
-        // Original PDF had a fallback 'return "Scheduled"' here, 
-        // but it's unreachable as the conditions above cover all numbers.
-        // Adding a fallback for safety, although it shouldn't be hit.
-        return "Unknown";
+        // Apply subsequent C# if conditions (these can override previous statuses)
+        if (diffMinutes < -15) {
+            status = "Delayed"; // Overrides Departed if diff is between -15 and -60
+        }
 
+        if (diffMinutes < -60) {
+            status = "Landed"; // Overrides Departed and Delayed if diff < -60
+        }
+
+        // Validate if the resulting status is actually part of our defined FlightStatus type
+        // This is a safety check in case the logic produces an unexpected string
+        const validStatuses: FlightStatus[] = ["Scheduled", "Boarding", "Departed", "Landed", "Delayed"];
+        if (validStatuses.includes(status)) {
+            return status;
+        } else {
+            console.warn(`Calculated status "${status}" is not a recognized FlightStatus. Defaulting to Unknown.`);
+            return "Unknown"; // Fallback if something unexpected happened
+        }
     } catch (e) {
         console.error("Error calculating flight status:", departureTimeString, e);
         return "Unknown";

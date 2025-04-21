@@ -1,44 +1,21 @@
-// Suggested location: src/types/flight.ts
+export type FlightStatus = "Scheduled" | "Boarding" | "Departed" | "Landed" | "Delayed" | "Unknown";
 
-/**
- * Represents the structure of flight data received from the backend API.
- */
-export interface Flight {
-    /** * Unique identifier for the flight (maps to Guid on backend, string in JSON/TS). 
-     */
+export interface IFlight {
     id: string;
-
-    /** * The flight number (e.g., "BA123"). 
-     */
     flightNumber: string;
-
-    /** * The destination city or airport code.
-     */
     destination: string;
-
-    /** * The scheduled departure time (received as an ISO 8601 string from backend).
-     */
-    departureTime: string;
-
-    /** * The assigned departure gate.
-     */
+    departureTime: string; // (ISO format from backend)
     gate: string;
-
-    /** * The calculated flight status (e.g., "Scheduled", "Boarding", "Departed").
-     * This might be calculated on the backend (as in our Flight model) or frontend.
-     */
-    status: FlightStatus;
+    currentStatus?: FlightStatus;  // <-- To store status pushed by SignalR
 }
-
-/**
- * Represents the data needed to create a new flight via the API.
- * (Matching the CreateFlightRequest DTO on the backend)
- */
-export interface CreateFlightRequest {
+export interface ICreateFlightRequest {
     flightNumber: string;
     destination: string;
-    departureTime: string; // Send as ISO 8601 string
+    departureTime: string; // Expect UTC ISO string
     gate: string;
 }
 
-export type FlightStatus = 'Scheduled' | 'Boarding' | 'Departed' | 'Landed' | 'Delayed';
+export interface IFlightStatusUpdatePayload {
+    flightId: string;
+    newStatus: FlightStatus;
+}
