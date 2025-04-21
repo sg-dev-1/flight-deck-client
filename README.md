@@ -36,8 +36,7 @@ This project is a full-stack, real-time flight board management system developed
 
 **[Watch: Adding a Flight](docs/media/add_flight.mp4)**
 
-**Deleting a Flight:**
-`[GIF Placeholder: Show hovering over a row, clicking the delete icon, and seeing the flight disappear]`
+**[Watch: Deleting a Flight](docs/media/remove_flight.mp4)**
 
 **Status Change Animation:**
 `[GIF Placeholder: Show a flight's status changing automatically and the blinking animation appearing]`
