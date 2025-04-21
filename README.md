@@ -13,41 +13,6 @@ This project is a full-stack, real-time flight board management system developed
     * Delete existing flights directly from the table.
     * Filter flights by Destination and/or Status via the API.
 * **Automatic Status Calculation:** Flight status (Scheduled, Boarding, Departed, Delayed, Landed) is calculated client-side based on departure time.
-* **Filtering UI:** Frontend includes inputs and buttons to filter the displayed flights based on destination and status.
-* **Error Handling:** Includes UI Error Boundary and specific API error handling for better user feedback and robustness.
-
-## Technologies Used
-
-**Frontend:**
-
-* React (`v18+`)
-* TypeScript
-* Vite (for development environment)
-* Material UI (MUI) (for UI components and styling)
-* Axios (for HTTP requests)
-* React Hook Form (for form management)
-* Zod (for client-side schema validation)
-* Day.js (for date/time manipulation)
-* Styled-components (for specific component styling, e.g., StatusChip)
-* `@microsoft/signalr` (for real-time communication)
-* `react-country-flag` (for displaying destination flags)
-
-## Screenshots & GIFs
-# Flight Deck - Real-Time Flight Board
-
-## Description
-
-This project is a full-stack, real-time flight board management system developed as per the interview task requirements. It features a React + TypeScript frontend and an ASP.NET Core Web API backend, supporting live updates, flight management (add, delete, filter), input validation, and a user-friendly UI with real-time feedback via SignalR.
-
-## Features
-
-* **Real-Time Flight Display:** Shows current flights in a table format.
-* **Live Updates:** Utilizes SignalR to push real-time updates for added flights, deleted flights, and status changes (eliminating the need for polling).
-* **Flight Management:**
-    * Add new flights via a dedicated form with client and server-side validation.
-    * Delete existing flights directly from the table.
-    * Filter flights by Destination and/or Status via the API.
-* **Automatic Status Calculation:** Flight status (Scheduled, Boarding, Departed, Delayed, Landed) is calculated client-side based on departure time.
 * **Status Animation:** Flight status changes are visually indicated with an animation in the table.
 * **Filtering UI:** Frontend includes inputs and buttons to filter the displayed flights based on destination and status.
 * **Error Handling:** Includes UI Error Boundary and specific API error handling for better user feedback and robustness.
