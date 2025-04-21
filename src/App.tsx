@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Container, Typography, AppBar, Toolbar, Box, Snackbar,
   Alert as MuiAlert, Grid, TextField, Button, CircularProgress,
@@ -10,11 +10,20 @@ import { AlertProps } from '@mui/material/Alert';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 
+// Components
 import FlightTable from './components/FlightTable';
 import AddFlightForm from './components/AddFlightForm';
-import { startSignalRConnection, stopSignalRConnection, onFlightAdded, onFlightDeleted, offFlightAdded, offFlightDeleted } from './services/signalrService';
-import { getFlights } from './services/apiService';
-import { Flight, FlightStatus } from './types/flight';
+// Hooks
+import { useSnackbar } from './hooks/useSnackbar';
+import { useFlightsData } from './hooks/useFlightsData';
+// Services & Types
+import {
+  startSignalRConnection, stopSignalRConnection,
+  onFlightAdded, offFlightAdded,
+  onFlightDeleted, offFlightDeleted,
+  onFlightStatusChanged, offFlightStatusChanged
+} from './services/signalrService';
+import { IFlight, FlightStatus } from './types/flight';
 import { calculateFlightStatus } from './utils/statusCalculator';
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
@@ -22,128 +31,104 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
 
-const statusOptions: FlightStatus[] = ["Scheduled", "Boarding", "Departed", "Landed", "Delayed"];
-
+const statusOptions: FlightStatus[] = ["Scheduled", "Boarding", "Departed", "Landed", "Delayed", "Unknown"];
 
 function App() {
-  const [flights, setFlights] = useState<Flight[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // Filter State
   const [destinationFilterInput, setDestinationFilterInput] = useState<string>('');
   const [statusFilterInput, setStatusFilterInput] = useState<string>('');
   const [appliedDestinationFilter, setAppliedDestinationFilter] = useState<string | undefined>(undefined);
   const [appliedStatusFilter, setAppliedStatusFilter] = useState<string | undefined>(undefined);
-  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
-  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<AlertProps['severity']>('info');
 
-  const handleSnackbarClose = useCallback((event?: React.SyntheticEvent | Event, reason?: string) => {
-    if (reason === 'clickaway') return;
-    setSnackbarOpen(false);
-  }, []);
+  // Custom Hooks
+  const snackbar = useSnackbar();
+  // Pass applied string filters to the hook
+  const { flights, loading, error, setFlights, refetchFlights } = useFlightsData(appliedDestinationFilter, appliedStatusFilter);
 
-  const showSnackbar = useCallback((message: string, severity: AlertProps['severity'] = 'info') => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
-  }, []);
-
-  // --- Data Fetching Logic ---
-  const fetchFlights = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    console.log(`Fetching flights with Destination=${appliedDestinationFilter}, Status=${appliedStatusFilter}`);
-    try {
-      const data = await getFlights(appliedDestinationFilter, appliedStatusFilter);
-      setFlights(data);
-    } catch (err) {
-      console.error("Failed to fetch flights:", err);
-      setError("Failed to load flight data. Please try again later.");
-      showSnackbar("Failed to load flight data.", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [appliedDestinationFilter, appliedStatusFilter, showSnackbar]);
-
-  // --- Effect Hook for Data Fetching (runs on mount and when filters change) ---
+  // Show fetch error in snackbar
   useEffect(() => {
-    fetchFlights();
-  }, [fetchFlights]); // Runs when fetchFlights identity changes (due to filter changes)
+    if (error) {
+      snackbar.show(error, "error");
+    }
+  }, [error, snackbar]); // snackbar includes stable show function
 
-  // --- Effect Hook for SignalR Connection and Listeners (runs only once on mount/unmount) ---
+  // --- SignalR Effect ---
   useEffect(() => {
     let isMounted = true;
 
-    // Define handlers inside or make sure they don't depend on state that changes
-    // Note: These handlers capture the initial state of applied filters. 
-    // If a new flight arrives, the check against filters uses the filters active when the handler was defined.
-    // This is generally okay because fetchFlights runs on filter change anyway.
-    // A more complex approach might involve refetching within handleFlightAdded if filters are active.
-    const handleFlightAdded = (newFlight: Flight) => {
+    // Handler for newly added flights
+    const handleFlightAdded = (newFlight: IFlight) => {
       if (!isMounted) return;
       console.log("SignalR: FlightAdded received in App", newFlight);
+      // Important: Calculate and add initial status when flight is added via SignalR
+      const initialStatus = calculateFlightStatus(newFlight.departureTime);
+      const flightWithStatus = { ...newFlight, currentStatus: initialStatus };
+
       setFlights(currentFlights => {
-        if (currentFlights.some(f => f.id === newFlight.id)) return currentFlights;
-
-        // Check if the new flight matches the filters *at the time the handler was created*
-        const destinationMatch = !appliedDestinationFilter || newFlight.destination.toLowerCase().includes(appliedDestinationFilter.toLowerCase());
-        const statusMatch = !appliedStatusFilter || calculateFlightStatus(newFlight.departureTime).toLowerCase() === appliedStatusFilter.toLowerCase();
-
-        if (destinationMatch && statusMatch) {
-          const updatedFlights = [...currentFlights, newFlight];
-          updatedFlights.sort((a, b) => new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime());
-          return updatedFlights;
-        } else {
-          console.log("New flight received but doesn't match current filters (at time of handler registration).");
-          return currentFlights;
-        }
+        if (currentFlights.some(f => f.id === flightWithStatus.id)) return currentFlights;
+        const updatedFlights = [...currentFlights, flightWithStatus];
+        updatedFlights.sort((a, b) => new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime());
+        return updatedFlights;
       });
-      showSnackbar(`Flight ${newFlight.flightNumber} Added`, 'success');
+      snackbar.show(`Flight ${flightWithStatus.flightNumber} Added`, 'success');
+      // Note: Animation state is handled within FlightTable based on prop changes now
     };
 
-    const handleFlightDeleted = (deletedId: string) => {
+    // Handler for deleted flights
+    const handleFlightDeleted = (deletedFlight: IFlight) => {
       if (!isMounted) return;
-      console.log("SignalR: FlightDeleted received in App", deletedId);
-      let deletedFlightNumber: string | undefined;
-      setFlights(currentFlights => {
-        const flightToRemove = currentFlights.find(flight => flight.id === deletedId);
-        deletedFlightNumber = flightToRemove?.flightNumber;
-        return currentFlights.filter(flight => flight.id !== deletedId);
-      });
-      showSnackbar(`Flight ${deletedFlightNumber ?? deletedId} Deleted`, 'info');
+      console.log("SignalR: FlightDeleted received in App", deletedFlight);
+      setFlights(currentFlights => currentFlights.filter(flight => flight.id !== deletedFlight.id));
+      snackbar.show(`Flight ${deletedFlight.flightNumber} Deleted`, 'info');
     };
 
-    // Start connection and register listeners
+    // Handler for status updates pushed from backend
+    const handleFlightStatusChanged = (flightId: string, newStatus: FlightStatus) => {
+      if (!isMounted) return;
+      console.log(`SignalR: FlightStatusChanged received in App: ${flightId} -> ${newStatus}`);
+      setFlights(currentFlights =>
+        currentFlights.map(flight =>
+          flight.id === flightId
+            // Update the status field; FlightTable's effect will detect this change
+            ? { ...flight, currentStatus: newStatus }
+            : flight
+        )
+      );
+    };
+
+    // --- Connect and Register Listeners ---
     startSignalRConnection()
       .then(connection => {
         if (connection && isMounted) {
           console.log("SignalR Connected in App component.");
           onFlightAdded(handleFlightAdded);
           onFlightDeleted(handleFlightDeleted);
-          console.log("SignalR listeners registered in App.");
+          onFlightStatusChanged(handleFlightStatusChanged); // Register status listener
+          console.log("SignalR listeners registered (Add, Delete, StatusChange).");
         }
       })
       .catch(err => {
         console.error("SignalR Connection Error in App: ", err);
-        if (isMounted) showSnackbar("Could not connect to real-time server.", "error");
+        if (isMounted) snackbar.show("Could not connect to real-time server.", "error");
       });
 
-    // Cleanup function for this effect
+    // --- Cleanup ---
     return () => {
       isMounted = false;
       offFlightAdded(handleFlightAdded);
       offFlightDeleted(handleFlightDeleted);
+      offFlightStatusChanged(handleFlightStatusChanged); // Unregister status listener
       stopSignalRConnection();
       console.log("SignalR listeners unregistered and connection stopped.");
     };
-    // *** CORRECTED Dependency array: Runs only on mount/unmount ***
-    // (showSnackbar is stable due to useCallback with empty dependency array)
-  }, [showSnackbar]);
+  }, [setFlights, snackbar.show]); // Dependencies
 
   // --- Filter Handlers ---
   const handleFilter = () => {
-    setAppliedDestinationFilter(destinationFilterInput || undefined);
-    setAppliedStatusFilter(statusFilterInput || undefined);
+    const newDest = destinationFilterInput.trim() || undefined;
+    const newStatus = statusFilterInput || undefined;
+    setAppliedDestinationFilter(newDest);
+    setAppliedStatusFilter(newStatus);
   };
 
   const handleClearFilters = () => {
@@ -153,35 +138,31 @@ function App() {
     setAppliedStatusFilter(undefined);
   };
 
+  // --- Calculate button disabled states ---
+  const isFilterApplied = appliedDestinationFilter !== undefined || appliedStatusFilter !== undefined;
+  const isFilterButtonDisabled =
+    (destinationFilterInput.trim() || undefined) === appliedDestinationFilter &&
+    (statusFilterInput || undefined) === appliedStatusFilter;
+  const isClearButtonDisabled = !isFilterApplied;
+
 
   return (
-    // Using React.Fragment <> to avoid unnecessary outer div
     <>
       <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Flight Deck
-          </Typography>
-        </Toolbar>
+        <Toolbar><Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>Flight Deck</Typography></Toolbar>
       </AppBar>
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
 
-        <Typography variant="h5" component="h2" gutterBottom>
-          Add New Flight
-        </Typography>
-        <AddFlightForm showSnackbar={showSnackbar} />
+        <Typography variant="h5" component="h2" gutterBottom>Add New Flight</Typography>
+        <AddFlightForm showSnackbar={snackbar.show} />
 
-        {/* --- Filter Section --- */}
-        <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
-          Filter Flights
-        </Typography>
+        <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>Filter Flights</Typography>
         <Paper sx={{ p: 2, mb: 2 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={5}>
-              <TextField fullWidth label="Destination" variant="outlined" size="small" value={destinationFilterInput} onChange={(e) => setDestinationFilterInput(e.target.value)} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
+            {/* Updated Grid syntax */}
+            <Grid xs={12} sm={5}><TextField fullWidth label="Destination" variant="outlined" size="small" value={destinationFilterInput} onChange={(e) => setDestinationFilterInput(e.target.value)} /></Grid>
+            <Grid xs={12} sm={4}>
               <FormControl fullWidth size="small">
                 <InputLabel id="status-filter-label">Status</InputLabel>
                 <Select labelId="status-filter-label" id="status-filter" value={statusFilterInput} label="Status" onChange={(e) => setStatusFilterInput(e.target.value)} >
@@ -190,27 +171,27 @@ function App() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3} container spacing={1} justifyContent="flex-end">
-              <Grid item><Button variant="contained" onClick={handleFilter} startIcon={<SearchIcon />} size="medium" >Filter</Button></Grid>
-              <Grid item><Button variant="outlined" onClick={handleClearFilters} startIcon={<ClearIcon />} size="medium">Clear</Button></Grid>
+            <Grid xs={12} sm={3} container spacing={1} justifyContent="flex-end">
+              <Grid><Button variant="contained" onClick={handleFilter} startIcon={<SearchIcon />} size="medium" disabled={isFilterButtonDisabled}>Filter</Button></Grid>
+              <Grid><Button variant="outlined" onClick={handleClearFilters} startIcon={<ClearIcon />} size="medium" disabled={isClearButtonDisabled}>Clear</Button></Grid>
             </Grid>
           </Grid>
         </Paper>
 
-        <Typography variant="h4" component="h1" gutterBottom sx={{ mt: 2 }}>
-          Live Flight Information
-        </Typography>
+        {isFilterApplied && (<Typography variant="caption" display="block" sx={{ mb: 2 }}>Applied Filters: {appliedDestinationFilter && ` Destination="${appliedDestinationFilter}"`} {appliedStatusFilter && ` Status="${appliedStatusFilter}"`}</Typography>)}
 
-        {/* Render loading/error/table */}
+        <Typography variant="h4" component="h1" gutterBottom sx={{ mt: 2 }}>Live Flight Information</Typography>
+
         {loading && <Box display="flex" justifyContent="center" sx={{ my: 3 }}><CircularProgress /></Box>}
         {error && !loading && <Typography color="error" align="center">{error}</Typography>}
-        {!loading && <FlightTable flights={flights} showSnackbar={showSnackbar} />}
+        {/* Remove recentlyUpdatedIds prop - animation state is internal to FlightTable now */}
+        {!loading && <FlightTable flights={flights} showSnackbar={snackbar.show} />}
 
       </Container>
 
       {/* Global Snackbar */}
-      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>{snackbarMessage} </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={snackbar.handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={snackbar.handleClose} severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
       </Snackbar>
     </>
   );

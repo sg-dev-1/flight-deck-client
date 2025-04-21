@@ -1,6 +1,6 @@
 // Suggested location: src/services/signalrService.ts
 import * as signalR from "@microsoft/signalr";
-import { Flight } from "../types/flight"; // Import the Flight type
+import { Flight, FlightStatus, IFlightStatusUpdatePayload } from "../types/flight"; // Import Flight and FlightStatus types
 
 // --- Configuration ---
 const SIGNALR_HUB_URL = import.meta.env.VITE_SIGNALR_HUB_URL;
@@ -32,25 +32,20 @@ export const startSignalRConnection = async (): Promise<signalR.HubConnection> =
     connection = new signalR.HubConnectionBuilder()
         .withUrl(SIGNALR_HUB_URL)
         .withAutomaticReconnect() // Automatically try to reconnect if the connection is lost
-        .configureLogging(signalR.LogLevel.Information) // Adjust log level as needed (e.g., Debug for more detail)
+        .configureLogging(signalR.LogLevel.Information) // Adjust log level as needed
         .build();
 
-    // --- Connection Event Handlers (Optional but useful for debugging) ---
+    // --- Connection Event Handlers ---
     connection.onreconnecting((error) => {
         console.warn(`SignalR connection lost. Attempting to reconnect... Error: ${error?.message}`);
-        // You could update UI state here to show a "reconnecting" status
     });
 
     connection.onreconnected((connectionId) => {
         console.log(`SignalR connection re-established. Connection ID: ${connectionId}`);
-        // You could update UI state here
     });
 
     connection.onclose((error) => {
         console.error(`SignalR connection closed. Error: ${error?.message}`);
-        // You might want to attempt restarting the connection after a delay here,
-        // although withAutomaticReconnect handles many cases.
-        // Or update UI state to show "disconnected".
         connection = null; // Clear the connection variable
     });
 
@@ -85,8 +80,7 @@ export const stopSignalRConnection = async (): Promise<void> => {
 // --- Message Listener Registration ---
 
 /**
- * Registers a callback function to be invoked when a 'FlightAdded' message is received.
- * IMPORTANT: Ensure the connection is started before calling this.
+ * Registers a callback function for 'FlightAdded' messages.
  * @param callback - The function to call with the new Flight data.
  */
 export const onFlightAdded = (callback: (flight: Flight) => void) => {
@@ -94,27 +88,48 @@ export const onFlightAdded = (callback: (flight: Flight) => void) => {
         console.error("SignalR connection not established. Cannot register 'FlightAdded' listener.");
         return;
     }
-    // Register listener for the "FlightAdded" message from the server
     connection.on("FlightAdded", callback);
 };
 
 /**
- * Registers a callback function to be invoked when a 'FlightDeleted' message is received.
- * IMPORTANT: Ensure the connection is started before calling this.
- * @param callback - The function to call with the ID (string) of the deleted flight.
+ * Registers a callback function for 'FlightDeleted' messages.
+ * @param callback - The function to call with the ID (string) or the deleted Flight object (check backend implementation).
+ * Assuming backend now sends the full object based on previous changes.
  */
-export const onFlightDeleted = (callback: (id: string) => void) => {
+export const onFlightDeleted = (callback: (deletedFlight: Flight) => void) => { // Updated type to expect Flight object
     if (!connection) {
         console.error("SignalR connection not established. Cannot register 'FlightDeleted' listener.");
         return;
     }
-    // Register listener for the "FlightDeleted" message from the server
     connection.on("FlightDeleted", callback);
 };
 
 /**
+ * Registers a callback function for 'FlightStatusChanged' messages.
+ * Expects payload: { flightId: string, newStatus: FlightStatus }
+ * @param callback - The function to call with the flight ID and the new status.
+ */
+export const onFlightStatusChanged = (callback: (flightId: string, newStatus: FlightStatus) => void) => {
+    if (!connection) return console.error("SignalR not connected: onFlightStatusChanged");
+
+    connection.on("FlightStatusChanged", (payload: IFlightStatusUpdatePayload) => {
+        // *** ADD THIS LOG ***
+        console.log("[signalrService] Received FlightStatusChanged RAW PAYLOAD:", payload);
+        // *** END ADD ***
+
+        if (payload && typeof payload.flightId === 'string' && typeof payload.newStatus === 'string') {
+            callback(payload.flightId, payload.newStatus);
+        } else {
+            console.warn("Invalid FlightStatusChanged payload received in service:", payload);
+        }
+    });
+};
+
+
+// --- Listener Unregistration ---
+
+/**
  * Removes a previously registered listener for 'FlightAdded'.
- * Useful for cleanup in component unmounts.
  * @param callback - The specific callback function to remove.
  */
 export const offFlightAdded = (callback: (flight: Flight) => void) => {
@@ -124,17 +139,18 @@ export const offFlightAdded = (callback: (flight: Flight) => void) => {
 
 /**
  * Removes a previously registered listener for 'FlightDeleted'.
- * Useful for cleanup in component unmounts.
  * @param callback - The specific callback function to remove.
  */
-export const offFlightDeleted = (callback: (id: string) => void) => {
+export const offFlightDeleted = (callback: (deletedFlight: Flight) => void) => { // Updated type
     if (!connection) return;
     connection.off("FlightDeleted", callback);
 };
 
-
-// Note: This service manages a single global connection.
-// You would typically call startSignalRConnection once when your app loads
-// (e.g., in App.tsx's useEffect) and register/unregister listeners
-// in components that need real-time updates.
-
+/**
+ * Removes a previously registered listener for 'FlightStatusChanged'.
+ * @param callback - The specific callback function to remove.
+ */
+export const offFlightStatusChanged = (callback: (flightId: string, newStatus: FlightStatus) => void) => {
+    if (!connection) return;
+    connection.off("FlightStatusChanged", callback); // Use the same callback reference passed to 'on'
+};
