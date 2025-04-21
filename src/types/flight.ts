@@ -6,8 +6,8 @@ export interface IFlight {
     destination: string;
     departureTime: string; // ISO format from backend
     gate: string;
-    currentStatus?: FlightStatus; // Status pushed by SignalR or calculated initially
-    isAnimating?: boolean; // <-- ADD THIS FLAG
+    currentStatus?: FlightStatus;
+    isAnimating?: boolean;
 }
 export interface ICreateFlightRequest {
     flightNumber: string;
