@@ -1,5 +1,5 @@
 import * as signalR from "@microsoft/signalr";
-import { FlightStatus, IFlight, IFlightStatusUpdatePayload } from "../types/flight"; // Import Flight and FlightStatus types
+import { IFlight, FlightStatus, IFlightStatusUpdatePayload } from "../types/flight";
 
 const SIGNALR_HUB_URL = import.meta.env.VITE_SIGNALR_HUB_URL;
 
@@ -11,7 +11,6 @@ let connection: signalR.HubConnection | null = null;
 
 export const startSignalRConnection = async (): Promise<signalR.HubConnection> => {
     if (connection && connection.state === signalR.HubConnectionState.Connected) {
-        console.log("SignalR connection already established.");
         return connection;
     }
 
@@ -29,10 +28,6 @@ export const startSignalRConnection = async (): Promise<signalR.HubConnection> =
         console.warn(`SignalR connection lost. Attempting to reconnect... Error: ${error?.message}`);
     });
 
-    connection.onreconnected((connectionId) => {
-        console.log(`SignalR connection re-established. Connection ID: ${connectionId}`);
-    });
-
     connection.onclose((error) => {
         console.error(`SignalR connection closed. Error: ${error?.message}`);
         connection = null;
@@ -40,7 +35,6 @@ export const startSignalRConnection = async (): Promise<signalR.HubConnection> =
 
     try {
         await connection.start();
-        console.log(`SignalR connection started successfully. Connection ID: ${connection.connectionId}`);
         return connection;
     } catch (err) {
         console.error("Error starting SignalR connection:", err);
@@ -53,7 +47,6 @@ export const stopSignalRConnection = async (): Promise<void> => {
     if (connection && connection.state === signalR.HubConnectionState.Connected) {
         try {
             await connection.stop();
-            console.log("SignalR connection stopped.");
         } catch (err) {
             console.error("Error stopping SignalR connection:", err);
         } finally {
@@ -61,6 +54,7 @@ export const stopSignalRConnection = async (): Promise<void> => {
         }
     }
 };
+
 
 export const onFlightAdded = (callback: (flight: IFlight) => void) => {
     if (!connection) {
@@ -79,11 +73,12 @@ export const onFlightDeleted = (callback: (deletedFlight: IFlight) => void) => {
 };
 
 export const onFlightStatusChanged = (callback: (flightId: string, newStatus: FlightStatus) => void) => {
-    if (!connection) return console.error("SignalR not connected: onFlightStatusChanged");
+    if (!connection) {
+        console.error("SignalR not connected: onFlightStatusChanged");
+        return;
+    }
 
     connection.on("FlightStatusChanged", (payload: IFlightStatusUpdatePayload) => {
-        console.log("[signalrService] Received FlightStatusChanged RAW PAYLOAD:", payload);
-
         if (payload && typeof payload.flightId === 'string' && typeof payload.newStatus === 'string') {
             callback(payload.flightId, payload.newStatus);
         } else {
@@ -91,6 +86,7 @@ export const onFlightStatusChanged = (callback: (flightId: string, newStatus: Fl
         }
     });
 };
+
 
 export const offFlightAdded = (callback: (flight: IFlight) => void) => {
     if (!connection) return;
@@ -101,7 +97,6 @@ export const offFlightDeleted = (callback: (deletedFlight: IFlight) => void) => 
     if (!connection) return;
     connection.off("FlightDeleted", callback);
 };
-
 
 export const offFlightStatusChanged = (callback: (flightId: string, newStatus: FlightStatus) => void) => {
     if (!connection) return;

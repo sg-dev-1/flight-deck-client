@@ -11,7 +11,6 @@ export function useFlightsData(destination?: string, status?: string) {
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
-        console.log(`Workspaceing flights with Destination=${destination}, Status=${status}`);
         try {
             const data = await getFlights(destination, status);
             data.sort((a, b) => new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime());

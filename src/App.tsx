@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { AlertProps } from '@mui/material/Alert';
 import FlightDashboard from './components/FlightDashboard';
-import ErrorBoundary from './components/ErrorBoundary'; // <-- Import ErrorBoundary
+import ErrorBoundary from './components/ErrorBoundary';
 import { useSnackbar } from './hooks/useSnackbar';
 import { validStatusOptions } from './utils/constants';
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import styled, { keyframes } from 'styled-components';
-import { Box, Chip } from '@mui/material';
+import React, { JSX } from 'react';
+import styled from 'styled-components';
+import { Chip } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import FlightLandIcon from '@mui/icons-material/FlightLand';
@@ -8,35 +8,9 @@ import ConnectingAirportsIcon from '@mui/icons-material/ConnectingAirports';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { FlightStatus } from '../types/flight';
 
-interface AnimatingStatusInfo {
-    oldStatus: FlightStatus;
-    newStatus: FlightStatus;
-    timeoutId?: NodeJS.Timeout;
-}
-
 interface StatusDisplayProps {
-    animationInfo: AnimatingStatusInfo | undefined;
     displayStatus: FlightStatus;
 }
-
-const simpleBlink = keyframes`
-  0%, 100% { background-color: transparent; }
-  50% { background-color: yellow; } /* Or use theme palette: theme.palette.warning.light */
-`;
-
-const BlinkingBox = styled(Box)`
-  display: inline-block;
-  animation: ${simpleBlink} 1.5s linear infinite;
-  padding: 2px 4px;
-  border-radius: 4px;
-  line-height: 1;
-`;
-
-const ArrowSpan = styled.span`
-  margin: 0 8px;
-  font-weight: bold;
-  vertical-align: middle;
-`;
 
 const getStatusColors = (status: FlightStatus): { backgroundColor: string; color: string; } => {
     switch (status) {
@@ -60,13 +34,15 @@ const getStatusIcon = (status: FlightStatus): JSX.Element | null => {
     }
 };
 
-interface StatusChipProps { $flightStatus: FlightStatus; }
+interface StatusChipProps {
+    $flightStatus: FlightStatus;
+}
 
 const StatusChip = styled(Chip) <StatusChipProps>`
     background-color: ${props => getStatusColors(props.$flightStatus).backgroundColor};
     color: ${props => getStatusColors(props.$flightStatus).color};
     font-weight: ${props => (props.$flightStatus === 'Boarding' || props.$flightStatus === 'Delayed' ? 'bold' : 'normal')};
-    transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+    transition: background-color 0.3s ease-out, color 0.3s ease-out;
     height: 28px;
     font-size: 0.8125rem;
     min-width: 90px;
@@ -79,22 +55,15 @@ const StatusChip = styled(Chip) <StatusChipProps>`
 `;
 
 
-const StatusDisplayComponent: React.FC<StatusDisplayProps> = ({ animationInfo, displayStatus }) => {
-    const renderChip = (status: FlightStatus) => (
-        <StatusChip icon={getStatusIcon(status)} label={status} $flightStatus={status} size="small" />
+const StatusDisplayComponent: React.FC<StatusDisplayProps> = ({ displayStatus }) => {
+    return (
+        <StatusChip
+            icon={getStatusIcon(displayStatus)}
+            label={displayStatus}
+            $flightStatus={displayStatus}
+            size="small"
+        />
     );
-
-    if (animationInfo) {
-        return (
-            <Box sx={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                <BlinkingBox>{renderChip(animationInfo.oldStatus)}</BlinkingBox>
-                <ArrowSpan>→</ArrowSpan>
-                <BlinkingBox>{renderChip(animationInfo.newStatus)}</BlinkingBox>
-            </Box>
-        );
-    } else {
-        return renderChip(displayStatus);
-    }
 };
 
 export default React.memo(StatusDisplayComponent);
