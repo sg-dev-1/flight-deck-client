@@ -34,10 +34,7 @@ This project is a full-stack, real-time flight board management system developed
 
 ## Screenshots & GIFs
 
-**Main View:**
-
-**Adding a Flight and Filtering:**
-`[GIF Placeholder: Show opening the form, filling details, submitting, and seeing the new flight appear]`
+**[Watch: Adding a Flight](docs/media/add_flight.mp4)**
 
 **Deleting a Flight:**
 `[GIF Placeholder: Show hovering over a row, clicking the delete icon, and seeing the flight disappear]`
