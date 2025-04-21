@@ -88,7 +88,7 @@ This project is a full-stack, real-time flight board management system developed
 
 * **Status Change Animation:**
 
-*(Note: GIF quality might be affected by compression.*
+*Note: GIF quality might be affected by compression.*
 
 ### Frontend Setup
 
