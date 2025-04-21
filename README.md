@@ -17,8 +17,6 @@ This project is a full-stack, real-time flight board management system developed
 * **Filtering UI:** Frontend includes inputs and buttons to filter the displayed flights based on destination and status.
 * **Error Handling:** Includes UI Error Boundary and specific API error handling for better user feedback and robustness.
 
-*(Add any other implemented Bonus Features here, e.g., Persistent Database, Logging)*
-
 ## Technologies Used
 
 **Frontend:**
