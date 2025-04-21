@@ -44,6 +44,7 @@ This project is a full-stack, real-time flight board management system developed
     ![Deleting a Flight Demo](docs/media/remove_flight.gif)
 
 * **Status Change Animation:**
+   ![Status Change Animation Demo](docs/media/status_change.gif)
 
 *Note: GIF quality might be affected by compression.*
 
