@@ -1,4 +1,3 @@
-// src/components/FlightRow.tsx
 import React from 'react';
 import styled from 'styled-components';
 import {
@@ -8,15 +7,13 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import ReactCountryFlag from 'react-country-flag';
 
-import { IFlight, FlightStatus } from '../types/flight'; // Assuming type location
-import { cityToCountryCode } from '../utils/constants'; // Assuming constant location
-import { calculateFlightStatus } from '../utils/statusCalculator'; // Assuming util location
+import { IFlight, FlightStatus } from '../types/flight';
+import { cityToCountryCode } from '../utils/constants';
+import { calculateFlightStatus } from '../utils/statusCalculator';
 
-// Import the new StatusDisplay component
+
 import StatusDisplay from './StatusDisplay';
-
-// Define Props Interface
-interface AnimatingStatusInfo { // Re-define or import if moved to types
+interface AnimatingStatusInfo {
     oldStatus: FlightStatus;
     newStatus: FlightStatus;
     timeoutId?: NodeJS.Timeout;
@@ -27,11 +24,9 @@ interface FlightRowProps {
     animationInfo: AnimatingStatusInfo | undefined;
     isDeleting: boolean;
     onDelete: (id: string) => void;
-    // Pass formatDateTime function as a prop for consistency
     formatDateTime: (dateTimeString: string) => string;
 }
 
-// --- StyledTableRow specific to FlightRow ---
 const StyledTableRow = styled(MuiTableRow)`
   transition: background-color 0.15s ease-in-out;
   .delete-button {
@@ -46,20 +41,16 @@ const StyledTableRow = styled(MuiTableRow)`
   }
 `;
 
-// Define the component function
 const FlightRowComponent: React.FC<FlightRowProps> = ({
     flight,
     animationInfo,
     isDeleting,
     onDelete,
-    formatDateTime // Receive formatter function as prop
+    formatDateTime
 }) => {
-    // Calculate display values within the row
     const displayStatus = flight.currentStatus ?? calculateFlightStatus(flight.departureTime);
     const countryCode = cityToCountryCode[flight.destination];
-    const formattedDepartureTime = formatDateTime(flight.departureTime); // Use passed formatter
-
-    // Define cell styles (or pass down if preferred)
+    const formattedDepartureTime = formatDateTime(flight.departureTime);
     const cellSx = { padding: '12px 16px', verticalAlign: 'middle' };
 
     return (
@@ -93,5 +84,4 @@ const FlightRowComponent: React.FC<FlightRowProps> = ({
     );
 };
 
-// Memoize FlightRow - this is often beneficial for table performance
 export default React.memo(FlightRowComponent);

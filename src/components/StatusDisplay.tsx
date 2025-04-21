@@ -1,4 +1,3 @@
-// src/components/StatusDisplay.tsx
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Box, Chip } from '@mui/material';
@@ -7,13 +6,12 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import FlightLandIcon from '@mui/icons-material/FlightLand';
 import ConnectingAirportsIcon from '@mui/icons-material/ConnectingAirports';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { FlightStatus } from '../types/flight'; // Assuming type location
+import { FlightStatus } from '../types/flight';
 
-// Define Props Interface directly referencing the type from FlightTable
 interface AnimatingStatusInfo {
     oldStatus: FlightStatus;
     newStatus: FlightStatus;
-    timeoutId?: NodeJS.Timeout; // timeoutId might not be needed here
+    timeoutId?: NodeJS.Timeout;
 }
 
 interface StatusDisplayProps {
@@ -21,15 +19,11 @@ interface StatusDisplayProps {
     displayStatus: FlightStatus;
 }
 
-// --- Styled Components needed for StatusDisplay ---
-
-// Animation for status change indication
 const simpleBlink = keyframes`
   0%, 100% { background-color: transparent; }
   50% { background-color: yellow; } /* Or use theme palette: theme.palette.warning.light */
 `;
 
-// Box that applies the blinking animation
 const BlinkingBox = styled(Box)`
   display: inline-block;
   animation: ${simpleBlink} 1.5s linear infinite;
@@ -38,14 +32,12 @@ const BlinkingBox = styled(Box)`
   line-height: 1;
 `;
 
-// Arrow symbol between old and new status during animation
 const ArrowSpan = styled.span`
   margin: 0 8px;
   font-weight: bold;
   vertical-align: middle;
 `;
 
-// Helper functions for StatusChip styling (kept internal to this component's scope)
 const getStatusColors = (status: FlightStatus): { backgroundColor: string; color: string; } => {
     switch (status) {
         case "Scheduled": return { backgroundColor: '#e0e0e0', color: '#616161' };
@@ -68,10 +60,8 @@ const getStatusIcon = (status: FlightStatus): JSX.Element | null => {
     }
 };
 
-// Interface for StatusChip props
 interface StatusChipProps { $flightStatus: FlightStatus; }
 
-// Status Chip component definition
 const StatusChip = styled(Chip) <StatusChipProps>`
     background-color: ${props => getStatusColors(props.$flightStatus).backgroundColor};
     color: ${props => getStatusColors(props.$flightStatus).color};
@@ -89,9 +79,7 @@ const StatusChip = styled(Chip) <StatusChipProps>`
 `;
 
 
-// --- StatusDisplay Component ---
 const StatusDisplayComponent: React.FC<StatusDisplayProps> = ({ animationInfo, displayStatus }) => {
-    // Helper to render a single chip
     const renderChip = (status: FlightStatus) => (
         <StatusChip icon={getStatusIcon(status)} label={status} $flightStatus={status} size="small" />
     );
@@ -109,6 +97,4 @@ const StatusDisplayComponent: React.FC<StatusDisplayProps> = ({ animationInfo, d
     }
 };
 
-// Optional: Memoize if needed, though likely simple enough not to require it unless props change unnecessarily often
 export default React.memo(StatusDisplayComponent);
-// export default StatusDisplayComponent; // Without memo

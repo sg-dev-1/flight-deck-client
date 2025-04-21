@@ -1,4 +1,3 @@
-// src/hooks/useSnackbar.ts
 import { useState, useCallback } from 'react';
 import { AlertProps } from '@mui/material/Alert';
 
@@ -7,8 +6,8 @@ export function useSnackbar() {
     const [message, setMessage] = useState<string>('');
     const [severity, setSeverity] = useState<AlertProps['severity']>('info');
 
-    const handleClose = useCallback((event?: React.SyntheticEvent | Event, reason?: string) => {
-        if (reason === 'clickaway') return;
+    const handleClose = useCallback((_?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') { return; }
         setOpen(false);
     }, []);
 
