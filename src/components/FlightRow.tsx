@@ -1,66 +1,85 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import {
     TableRow as MuiTableRow, TableCell, CircularProgress,
     Box, IconButton
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ReactCountryFlag from 'react-country-flag';
-
 import { IFlight, FlightStatus } from '../types/flight';
 import { cityToCountryCode } from '../utils/constants';
 import { calculateFlightStatus } from '../utils/statusCalculator';
-
-
 import StatusDisplay from './StatusDisplay';
-interface AnimatingStatusInfo {
-    oldStatus: FlightStatus;
-    newStatus: FlightStatus;
-    timeoutId?: NodeJS.Timeout;
-}
 
 interface FlightRowProps {
     flight: IFlight;
-    animationInfo: AnimatingStatusInfo | undefined;
+    isAnimating: boolean;
     isDeleting: boolean;
     onDelete: (id: string) => void;
     formatDateTime: (dateTimeString: string) => string;
 }
 
-const StyledTableRow = styled(MuiTableRow)`
-  transition: background-color 0.15s ease-in-out;
-  .delete-button {
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
+const rowHighlightPulse = keyframes`
+  0%, 60% {
+    background-color: #fff9c4;
   }
+  100% {
+    background-color: transparent;
+  }
+`;
+
+interface StyledTableRowProps {
+    $isAnimating?: boolean;
+}
+
+const StyledTableRow = styled(MuiTableRow) <StyledTableRowProps>`
+  transition: background-color 0.15s ease-in-out;
+
   &:hover {
     background-color: #f9f9f9;
     .delete-button {
         opacity: 1;
     }
   }
+
+  .delete-button {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  ${props => props.$isAnimating && css`
+    animation: ${rowHighlightPulse} 3s ease-out forwards;
+    &:hover {
+      background-color: #fff9c4;
+    }
+  `}
 `;
+
 
 const FlightRowComponent: React.FC<FlightRowProps> = ({
     flight,
-    animationInfo,
+    isAnimating,
     isDeleting,
     onDelete,
     formatDateTime
 }) => {
+
     const displayStatus = flight.currentStatus ?? calculateFlightStatus(flight.departureTime);
     const countryCode = cityToCountryCode[flight.destination];
     const formattedDepartureTime = formatDateTime(flight.departureTime);
     const cellSx = { padding: '12px 16px', verticalAlign: 'middle' };
 
     return (
-        <StyledTableRow sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+        <StyledTableRow
+            $isAnimating={isAnimating}
+            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+        >
             <TableCell component="th" scope="row" sx={{ ...cellSx, fontWeight: '600' }}>
                 {'#' + flight.flightNumber}
             </TableCell>
             <TableCell sx={cellSx}>{flight.gate}</TableCell>
             <TableCell sx={cellSx}>
-                <StatusDisplay animationInfo={animationInfo} displayStatus={displayStatus} />
+                <StatusDisplay displayStatus={displayStatus} />
             </TableCell>
             <TableCell sx={cellSx}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>

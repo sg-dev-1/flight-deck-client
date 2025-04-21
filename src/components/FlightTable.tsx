@@ -1,24 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import React from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead,
     TableRow as MuiTableRow,
-    Card, CardContent
+    Card, CardContent,
 } from '@mui/material';
 import { AlertProps } from '@mui/material/Alert';
-import { IFlight, FlightStatus } from '../types/flight';
-import { deleteFlight } from '../services/apiService';
-import { calculateFlightStatus } from '../utils/statusCalculator';
+import { IFlight } from '../types/flight';
 import FlightRow from './FlightRow';
+
 interface FlightTableProps {
     flights: IFlight[];
     showSnackbar: (message: string, severity?: AlertProps['severity']) => void;
-}
-
-interface AnimatingStatusInfo {
-    oldStatus: FlightStatus;
-    newStatus: FlightStatus;
-    timeoutId: NodeJS.Timeout;
+    deletingId: string | null;
+    onDelete: (id: string) => void;
 }
 
 const formatDateTime = (dateTimeString: string): string => {
@@ -30,110 +24,11 @@ const formatDateTime = (dateTimeString: string): string => {
 };
 
 
-const FlightTableComponent: React.FC<FlightTableProps> = ({ flights, showSnackbar }) => {
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [animatingStatuses, setAnimatingStatuses] = useState<Record<string, AnimatingStatusInfo>>({});
-    const prevFlightsRef = useRef<IFlight[]>(flights);
-
-    useEffect(() => {
-        const newAnimating: Record<string, AnimatingStatusInfo> = {};
-        const changesDetected: string[] = [];
-        const prevFlightsMap = new Map(prevFlightsRef.current.map(f => [f.id, f]));
-
-        flights.forEach(currentFlight => {
-            const prevFlight = prevFlightsMap.get(currentFlight.id);
-            const prevPushedStatus = prevFlight?.currentStatus;
-            const currPushedStatus = currentFlight.currentStatus;
-            const prevCalculatedStatus = prevFlight ? calculateFlightStatus(prevFlight.departureTime) : undefined;
-            const currCalculatedStatus = calculateFlightStatus(currentFlight.departureTime);
-            const prevActualStatus = prevFlight ? (prevPushedStatus ?? prevCalculatedStatus) : currCalculatedStatus;
-            const currentActualStatus = currPushedStatus ?? currCalculatedStatus;
-
-            if (prevFlight && currentActualStatus !== prevActualStatus) {
-                changesDetected.push(currentFlight.id);
-
-                const existingAnimation = animatingStatuses[currentFlight.id];
-                if (existingAnimation) {
-                    clearTimeout(existingAnimation.timeoutId);
-                }
-
-                const timeoutId = setTimeout(() => {
-                    setAnimatingStatuses(prev => {
-                        const next = { ...prev };
-                        delete next[currentFlight.id];
-                        return next;
-                    });
-                }, 10000);
-
-                newAnimating[currentFlight.id] = {
-                    oldStatus: prevActualStatus ?? "Unknown",
-                    newStatus: currentActualStatus ?? "Unknown",
-                    timeoutId: timeoutId
-                };
-            }
-        });
-
-        if (changesDetected.length > 0) {
-            setAnimatingStatuses(prev => ({ ...prev, ...newAnimating }));
-        } else if (prevFlightsRef.current.length > 0 || flights.length > 0) {
-        }
-
-        prevFlightsRef.current = flights;
-
-        return () => {
-            Object.values(animatingStatuses).forEach(animInfo => clearTimeout(animInfo.timeoutId));
-        };
-    }, [flights, animatingStatuses]);
-
-    const handleDelete = useCallback(async (id: string) => {
-        setDeletingId(id);
-        let userMessage = `Error deleting flight. Please try again.`;
-        try {
-            await deleteFlight(id);
-            if (animatingStatuses[id]) {
-                clearTimeout(animatingStatuses[id].timeoutId);
-                setAnimatingStatuses(prev => {
-                    const next = { ...prev };
-                    delete next[id];
-                    return next;
-                });
-            }
-        } catch (err: any) {
-            console.error(`Failed to delete flight with ID ${id}:`, err);
-
-            if (axios.isAxiosError(err)) {
-                if (err.response) {
-                    const status = err.response.status;
-                    const responseData = err.response.data;
-                    console.error("API Error Deleting Flight - Status:", status, "Data:", responseData);
-                    if (status === 404) {
-                        userMessage = "Flight not found. It might have been deleted already.";
-                    } else if (status === 403) {
-                        userMessage = "Permission denied to delete this flight.";
-                    } else if (status >= 500) {
-                        userMessage = "Server error occurred while trying to delete flight.";
-                    } else {
-                        userMessage = responseData?.title || `Error deleting flight (${status}).`;
-                    }
-                } else if (err.request) {
-                    userMessage = "Network Error: Could not reach server to delete flight.";
-                    console.error("Network Error Deleting Flight:", err.request);
-                } else {
-                    userMessage = `Request Setup Error: ${err.message}`;
-                    console.error("Axios Setup Error Deleting Flight:", err.message);
-                }
-            } else {
-                userMessage = "An unexpected client-side error occurred during deletion.";
-                console.error("Non-API Error Deleting Flight:", err);
-            }
-
-            showSnackbar(userMessage, 'error');
-            setDeletingId(null);
-
-        } finally {
-            setDeletingId(null);
-        }
-    }, [animatingStatuses, showSnackbar]);
+const FlightTableComponent: React.FC<FlightTableProps> = ({
+    flights,
+    deletingId,
+    onDelete
+}) => {
 
     const cellSx = { padding: '12px 16px', verticalAlign: 'middle' };
     const headCellSx = { ...cellSx, fontWeight: 'bold' };
@@ -161,16 +56,20 @@ const FlightTableComponent: React.FC<FlightTableProps> = ({ flights, showSnackba
                                     </TableCell>
                                 </MuiTableRow>
                             ) : (
-                                flights.map((flight) => (
-                                    <FlightRow
-                                        key={flight.id}
-                                        flight={flight}
-                                        animationInfo={animatingStatuses[flight.id]}
-                                        isDeleting={deletingId === flight.id}
-                                        onDelete={handleDelete}
-                                        formatDateTime={formatDateTime}
-                                    />
-                                ))
+                                flights.map((flight) => {
+                                    const isAnimating = flight.isAnimating ?? false;
+                                    const isDeleting = deletingId === flight.id;
+                                    return (
+                                        <FlightRow
+                                            key={flight.id}
+                                            flight={flight}
+                                            isAnimating={isAnimating}
+                                            isDeleting={isDeleting}
+                                            onDelete={onDelete}
+                                            formatDateTime={formatDateTime}
+                                        />
+                                    );
+                                })
                             )}
                         </TableBody>
                     </Table>
