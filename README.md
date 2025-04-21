@@ -33,13 +33,62 @@ This project is a full-stack, real-time flight board management system developed
 * `react-country-flag` (for displaying destination flags)
 
 ## Screenshots & GIFs
+# Flight Deck - Real-Time Flight Board
 
-![Adding a Flight Demo](docs/media/add_flight.gif)
+## Description
 
-![Deleting a Flight Demo](docs/media/remove_flight.gif)
+This project is a full-stack, real-time flight board management system developed as per the interview task requirements. It features a React + TypeScript frontend and an ASP.NET Core Web API backend, supporting live updates, flight management (add, delete, filter), input validation, and a user-friendly UI with real-time feedback via SignalR.
 
-**Status Change Animation:**
-`[GIF Placeholder: Show a flight's status changing automatically and the blinking animation appearing]`
+## Features
+
+* **Real-Time Flight Display:** Shows current flights in a table format.
+* **Live Updates:** Utilizes SignalR to push real-time updates for added flights, deleted flights, and status changes (eliminating the need for polling).
+* **Flight Management:**
+    * Add new flights via a dedicated form with client and server-side validation.
+    * Delete existing flights directly from the table.
+    * Filter flights by Destination and/or Status via the API.
+* **Automatic Status Calculation:** Flight status (Scheduled, Boarding, Departed, Delayed, Landed) is calculated client-side based on departure time.
+* **Status Animation:** Flight status changes are visually indicated with an animation in the table.
+* **Filtering UI:** Frontend includes inputs and buttons to filter the displayed flights based on destination and status.
+* **Error Handling:** Includes UI Error Boundary and specific API error handling for better user feedback and robustness.
+
+*(Add any other implemented Bonus Features here, e.g., Persistent Database, Logging)*
+
+## Technologies Used
+
+**Frontend:**
+
+* React (`v18+`)
+* TypeScript
+* Vite (for development environment)
+* Material UI (MUI) (for UI components and styling)
+* Axios (for HTTP requests)
+* React Hook Form (for form management)
+* Zod (for client-side schema validation)
+* Day.js (for date/time manipulation)
+* Styled-components (for specific component styling, e.g., StatusChip)
+* `@microsoft/signalr` (for real-time communication)
+* `react-country-flag` (for displaying destination flags)
+
+**Backend:**
+
+* ASP.NET Core Web API (.NET 6/7/8 - *Specify Version*)
+* C#
+* SignalR (for real-time communication)
+* *(Mention Storage: In-Memory List / EF Core + SQLite / etc.)*
+* *(Mention Testing Frameworks if used: xUnit / NUnit)*
+
+## Screenshots & Demonstrations
+
+* **Adding a Flight:**
+    ![Adding a Flight Demo](docs/media/add_flight.gif)
+
+* **Deleting a Flight:**
+    ![Deleting a Flight Demo](docs/media/remove_flight.gif)
+
+* **Status Change Animation:**
+    `[GIF Placeholder: Show a flight's status changing automatically and the blinking animation appearing]`
+*(Note: GIF quality might be affected by compression.*
 
 ### Frontend Setup
 
