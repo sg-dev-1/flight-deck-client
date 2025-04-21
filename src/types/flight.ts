@@ -4,14 +4,14 @@ export interface IFlight {
     id: string;
     flightNumber: string;
     destination: string;
-    departureTime: string; // (ISO format from backend)
+    departureTime: string; // UTC ISO
     gate: string;
-    currentStatus?: FlightStatus;  // <-- To store status pushed by SignalR
+    currentStatus?: FlightStatus;  // To store status pushed by SignalR
 }
 export interface ICreateFlightRequest {
     flightNumber: string;
     destination: string;
-    departureTime: string; // Expect UTC ISO string
+    departureTime: string; // UTC ISO
     gate: string;
 }
 

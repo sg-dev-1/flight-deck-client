@@ -1,4 +1,5 @@
-import { FlightStatus } from "../types/flight"; // Import the consolidated type
+import { FlightStatus } from "../types/flight";
+import { validStatusOptions } from "./constants";
 
 export const calculateFlightStatus = (departureTimeString: string): FlightStatus => {
     try {
@@ -12,10 +13,8 @@ export const calculateFlightStatus = (departureTimeString: string): FlightStatus
         const departureUtcMillis = departureTime.getTime();
         const diffMinutes = (departureUtcMillis - nowUtcMillis) / 60000;
 
-        // Initialize status based on C# logic
         let status: FlightStatus = "Scheduled"; // Default
 
-        // Apply C# if/else if chain
         if (diffMinutes > 30) {
             status = "Scheduled";
         } else if (diffMinutes > 10) {
@@ -23,24 +22,20 @@ export const calculateFlightStatus = (departureTimeString: string): FlightStatus
         } else if (diffMinutes >= -60) {
             status = "Departed";
         }
-
-        // Apply subsequent C# if conditions (these can override previous statuses)
         if (diffMinutes < -15) {
-            status = "Delayed"; // Overrides Departed if diff is between -15 and -60
+            status = "Delayed";
         }
-
         if (diffMinutes < -60) {
-            status = "Landed"; // Overrides Departed and Delayed if diff < -60
+            status = "Landed";
         }
 
-        // Validate if the resulting status is actually part of our defined FlightStatus type
-        // This is a safety check in case the logic produces an unexpected string
-        const validStatuses: FlightStatus[] = ["Scheduled", "Boarding", "Departed", "Landed", "Delayed"];
+        const validStatuses: FlightStatus[] = validStatusOptions;
+
         if (validStatuses.includes(status)) {
             return status;
         } else {
             console.warn(`Calculated status "${status}" is not a recognized FlightStatus. Defaulting to Unknown.`);
-            return "Unknown"; // Fallback if something unexpected happened
+            return "Unknown";
         }
     } catch (e) {
         console.error("Error calculating flight status:", departureTimeString, e);
