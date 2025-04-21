@@ -55,7 +55,6 @@ export const stopSignalRConnection = async (): Promise<void> => {
     }
 };
 
-
 export const onFlightAdded = (callback: (flight: IFlight) => void) => {
     if (!connection) {
         console.error("SignalR connection not established. Cannot register 'FlightAdded' listener.");
@@ -86,7 +85,6 @@ export const onFlightStatusChanged = (callback: (flightId: string, newStatus: Fl
         }
     });
 };
-
 
 export const offFlightAdded = (callback: (flight: IFlight) => void) => {
     if (!connection) return;
